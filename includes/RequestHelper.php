@@ -16,7 +16,7 @@ class RequestHelper {
     final public static function get_Question_mark($count)
     {
         $question_mark = array_fill(0, $count, "(?)");
-        return implode(", ", $question_mark);
+        return implode(", ", $question_mark); //Составляем строку вопросов
     }
     //принимает ассоциативный массив и возвращает массив ключей, обрамленные обратными апострофами
     final public static function get_Property($request)
