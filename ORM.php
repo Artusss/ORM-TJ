@@ -9,26 +9,28 @@ class Singleton //реализация одноименного шаблона
     protected function __clone() {}
     protected function __wakeup() {}
 }
-interface iCRUD
-{
+interface IBean{
     public function setBean($table_name, $bean_assoc);
     public function getBean($bean);
-    public function save($bean);
-    public function read($table_name, $request, $value_arr);
-    public function readOne($table_name, $request, $value_arr, $what_select);
-    public function readCount($table_name, $request, $value_arr);
-    public function exists($table_name, $request, $value_arr);
-    public function update($table_name, $request_set, $request_condition, $value_arr);
-    public function delete($table_name, $request, $value_arr);
-    public function clean($table_name);
-    public function close();
 }
-interface iMerger
+interface ICrud
 {
-    public function join($type, $table_arr, $request, $value_arr, $what_select);
+    public function Save($bean);
+    public function Read($table_name, $request, $value_arr);
+    public function ReadOne($table_name, $request, $value_arr, $what_select);
+    public function ReadCount($table_name, $request, $value_arr);
+    public function Exists($table_name, $request, $value_arr);
+    public function Update($table_name, $request_set, $request_condition, $value_arr);
+    public function Delete($table_name, $request, $value_arr);
+    public function Clean($table_name);
+    public function Close();
+}
+interface IMerger
+{
+    public function Join($type, $table_arr, $request, $value_arr, $what_select);
 }
 
-class TJ extends Singleton implements iCRUD, iMerger
+class TJ extends Singleton implements IBean, ICrud, IMerger
 {
     protected static $db_name; //имя базы данных
     protected static $host; //имя хоста
@@ -127,7 +129,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //записывает объект Bean в БД и возвращает id данной записи из БД
-    public function save($bean){
+    public function Save($bean){
         $bean_assoc = $this->getBean($bean); //Получаем ассоциативный массив свойств класса Bean
         $table_name = array_shift($bean_assoc); //Удаляем из списка свойств название таблицы принадлежности
         $str_property = RequestHelper::get_Property($bean_assoc); //Возвращаем массив ключей
@@ -139,7 +141,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //читает из БД строки и возвращает их в виде ассоциативного массива
-    public function read($table_name, $request = '1', $value_arr = null, $what_select='*')
+    public function Read($table_name, $request = '1', $value_arr = null, $what_select='*')
     {
         $table_content = array();
         $table_name = "`" . str_replace("`", "``", $table_name) . "`"; //Экранируем название
@@ -155,7 +157,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //читает из БД строку и возвращает ее в виде объекта класса Bean
-    public function readOne($table_name, $request = '1', $value_arr = null, $what_select='*')
+    public function ReadOne($table_name, $request = '1', $value_arr = null, $what_select='*')
     {
         $table_name = "`" . str_replace("`", "``", $table_name) . "`"; //Экранируем название
         $request_field = "SELECT {$what_select} FROM {$table_name} WHERE {$request}"; //Составляем запрос
@@ -166,7 +168,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //возвращает колличество строк
-    public function readCount($table_name, $request = '1', $value_arr = null)
+    public function ReadCount($table_name, $request = '1', $value_arr = null)
     {
         $table_name = "`" . str_replace("`", "``", $table_name) . "`"; //Экранируем название
         $request_field = "SELECT COUNT(`id`) as `total_count` FROM {$table_name} WHERE {$request}"; //Составляем запрос
@@ -177,7 +179,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //возвращает true если данная строка существует и false если нет
-    public function exists($table_name, $request = '1', $value_arr = null)
+    public function Exists($table_name, $request = '1', $value_arr = null)
     {
         $table_name = "`" . str_replace("`", "``", $table_name) . "`"; //Экранируем название
         $request_field = "SELECT `id` FROM {$table_name} WHERE {$request}"; //Составляем запрос
@@ -191,7 +193,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //обновляет строку в БД
-    public function update($table_name, $request_set, $request_condition, $value_arr = null)
+    public function Update($table_name, $request_set, $request_condition, $value_arr = null)
     {
         $table_name = "`" . str_replace("`", "``", $table_name) . "`"; //Экранируем название
         $request_field = "UPDATE {$table_name} SET {$request_set} WHERE {$request_condition}"; //Составляем запрос
@@ -202,7 +204,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //удаляет строки из БД
-    public function delete($table_name, $request, $value_arr = null)
+    public function Delete($table_name, $request, $value_arr = null)
     {
         $table_name = "`" . str_replace("`", "``", $table_name) . "`"; //Экранируем название
         $request_field = "DELETE FROM {$table_name} WHERE {$request}"; //Составляем запрос
@@ -213,7 +215,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //очищает таблицу (не удаляет ее)
-    public function clean($table_name){
+    public function Clean($table_name){
         $table_name = "`" . str_replace("`", "``", $table_name) . "`"; //Экранируем название
         $request_field = "TRUNCATE TABLE {$table_name}"; //Составляем запрос
 
@@ -223,7 +225,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //объединяет 2 таблицы в одну с возможностью задать общие параметры в виде разных имен
-    public function join($type, $table_arr, $request = '1', $value_arr = null, $what_select='*')
+    public function Join($type, $table_arr, $request = '1', $value_arr = null, $what_select='*')
     {
         $two_tables_content = array();
         $name               = array();
@@ -242,7 +244,7 @@ class TJ extends Singleton implements iCRUD, iMerger
     }
 
     //закрывает соединение с БД
-    public function close($message=''){
+    public function Close($message=''){
         echo $message; //Выводим сообщение (если оно есть) о закрытии соединения
         unset($this->connection); //Закрываем соединение
     }
